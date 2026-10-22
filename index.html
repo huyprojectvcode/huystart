@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Huy AI - Bảo mật</title>
+    <title>Huy AI - Chạy Trực Tiếp</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; display: flex; justify-content: center; height: 100vh; margin: 0; }
         .chat-container { width: 100%; max-width: 700px; display: flex; flex-direction: column; background: #1e293b; height: 100%; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
@@ -23,9 +23,9 @@
 <body>
 
 <div class="chat-container">
-    <div class="header"> Huy AI </div>
+    <div class="header">🤖 Huy AI (Groq)</div>
     <div class="chat-box" id="chatBox">
-        <div class="message ai">Chào bạn</div>
+        <div class="message ai">Chào bạn! Kết nối trực tiếp đã sẵn sàng. Bạn cần giúp gì?</div>
     </div>
     <div class="input-area">
         <input type="text" id="userInput" placeholder="Nhập tin nhắn..." onkeypress="handleKeyPress(event)">
@@ -34,17 +34,14 @@
 </div>
 
 <script>
-    // ==========================================================
-    // DÁN LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY (Lấy ở Phần 2)
-    const PROXY_URL = "https://huy-ai-proxy.linhsever123.workers.dev";
-    // ==========================================================
+    // DÁN API KEY CỦA GROQ VÀO ĐÂY (dạng gsk_...)
+    const GROQ_API_KEY = "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";
 
     const chatBox = document.getElementById('chatBox');
     const userInput = document.getElementById('userInput');
     const sendBtn = document.getElementById('sendBtn');
     
-    // Lưu trữ lịch sử chat để AI nhớ ngữ cảnh
-    let chatHistory = [{ role: "system", content: "Bạn là một trợ lý AI thân thiện, trả lời ngắn gọn và vui vẻ." }];
+    let chatHistory = [{ role: "system", content: "Bạn là trợ lý AI thân thiện." }];
 
     function handleKeyPress(e) {
         if (e.key === 'Enter') sendMessage();
@@ -58,34 +55,36 @@
         userInput.value = '';
         sendBtn.disabled = true;
 
-        // Thêm tin nhắn của người dùng vào lịch sử
         chatHistory.push({ role: "user", content: text });
-
         const loadingMsg = addMessage('Đang suy nghĩ...', 'ai');
 
         try {
-            const response = await fetch(PROXY_URL, {
+            const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages: chatHistory }) // Gửi cả lịch sử
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${GROQ_API_KEY}`
+                },
+                body: JSON.stringify({ 
+                    model: "llama-3.3-70b-versatile",
+                    messages: chatHistory 
+                })
             });
 
             const data = await response.json();
             loadingMsg.remove();
 
             if (data.error) {
-                addMessage(`Lỗi API: ${data.error.message}`, 'ai');
+                addMessage(`Lỗi: ${data.error.message}`, 'ai');
             } else {
                 const aiText = data.choices[0].message.content;
                 addMessage(aiText, 'ai');
-                // Lưu câu trả lời của AI vào lịch sử để lần sau nó nhớ
                 chatHistory.push({ role: "assistant", content: aiText });
             }
 
         } catch (error) {
             loadingMsg.remove();
-            addMessage("Lỗi kết nối đến Proxy! Kiểm tra lại link Cloudflare.", 'ai');
-            console.error(error);
+            addMessage("Lỗi kết nối mạng!", 'ai');
         } finally {
             sendBtn.disabled = false;
         }
